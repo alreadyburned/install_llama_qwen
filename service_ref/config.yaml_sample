@@ -1,0 +1,24 @@
+name: Local Config
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Qwen-14B
+    provider: llama.cpp
+    model: qwen2.5-coder-14b-instruct-q4_k_m.gguf
+    apiBase: http://localhost:8080
+    apiKey: dummy
+    
+  - name: Qwen-1.5B
+    provider: llama.cpp
+    model: qwen2.5-coder-1.5b-instruct-q8_0.gguf
+    apiBase: http://localhost:8081/v1
+    apiKey: dummy
+    roles:
+      - autocomplete
+    promptTemplates:
+      autocomplete: |
+        `
+        globalThis.importantFunc = importantFunc
+        <|fim_prefix|>{{{prefix}}}<|fim_suffix|>{{{suffix}}}<|fim_middle|>
+        `
