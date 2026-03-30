@@ -1,10 +1,9 @@
 #!/bin/bash
 
 LLAMACPP_TAG=b8580
-LLAMACPP_REPO=https://github.com/ggml-org/llama.cpp.git
-# 
-QWEN2.5_CHAT_URL=https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf
-QWEN2.5_AUTOCMPLT_URL=https://huggingface.co/unsloth/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf
+LLAMACPP_REPO="https://github.com/ggml-org/llama.cpp.git"
+QWEN2.5_CHAT_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf"
+QWEN2.5_AUTOCMPLT_URL="https://huggingface.co/unsloth/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf"
 
 
 REQUIRED_PKGS=("cmake" "make" "gcc" "g++" "git" "wget" "curl")
@@ -140,16 +139,37 @@ install_model()
   mkdir -p /opt/llama-qwen.service.d/models
 
   cp $WORK_DIR/models/* /opt/llama-qwen.service.d/models
-  cp $WORK_DIR/bin /opt/llama-qwen.service.d
+  cp $WORK_DIR/bin/* /opt/llama-qwen.service.d
+
+  
 }
 
 install_service()
 {
+  systemctl stop llama-qwen
+  systemctl disable llama-qwen
+
+  cp ./service_ref/llama-qwen.service /etc/systemd/system/llama-qwen.service
+  chmod 644 /etc/systemd/system/llama-qwen.service
+  
+  cp ./service_ref/llama-server-run.sh /opt/llama-qwen.service.d
+  chmod +x /opt/llama-qwen.service.d/llama-server-run.sh
+
+  systemctl start llama-qwen
+  systemctl enable llama-qwen
 
 }
 
-build_llamacpp
+if [[ $EUID -ne 0 ]]; then
+   echo "❌ need root permission."
+   
+   echo "run: sudo $0"
+   exit 1
+fi
 
-get_qwen_model
+# build_llamacpp
 
+# get_qwen_model
 
+install_model
+install_service
