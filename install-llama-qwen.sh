@@ -1,7 +1,8 @@
 #!/bin/bash
 
-LLAMACPP_TAG=b8580
+LLAMACPP_TAG="b8580"
 LLAMACPP_REPO="https://github.com/ggml-org/llama.cpp.git"
+
 QWEN2.5_CHAT_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf"
 QWEN2.5_AUTOCMPLT_URL="https://huggingface.co/unsloth/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf"
 
@@ -167,9 +168,9 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# build_llamacpp
+build_llamacpp
 
-# get_qwen_model
+get_qwen_model
 
 install_model
 install_service
