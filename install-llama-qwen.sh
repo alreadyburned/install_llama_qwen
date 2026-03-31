@@ -37,7 +37,7 @@ is_valid_gfx() {
     done
     return 1 # 유효하지 않음
 }
-
+BUILD_TARGET="default"
 while [ "$#" -gt 0 ]; do
   OPTION="$1"
   shift
@@ -47,16 +47,19 @@ while [ "$#" -gt 0 ]; do
       echo "[LLAMA.CPP] Using vulkan..."
       REQUIRED_PKGS+=("libvulkan-dev")
       REQUIRED_PKGS+=("vulkan-tools")
-      LLAMACPP_BLD_FLAG="-DGGML_VULKAN=ON"
+      LLAMACPP_BLD_FLAG="-DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DLLAMA_BUILD_TESTS=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON"
+      BUILD_TARGET="vulkan"
       break
       ;;
     --gfx*)
       echo "[LLAMA.CPP] Using ROCm..."
       GFX_NUM="${OPTION#--gfx}"
       if is_valid_gfx "$GFX_NUM"; then
-        LLAMACPP_BLD_FLAG="-DGGML_HIPBLAS=ON -DAMDGPU_TARGETS=gfx${GFX_NUM} -DGGML_HIP_ROCWMMA_FATTN=ON"
+        # LLAMACPP_BLD_FLAG="-DGGML_HIP=ON -DGGML_HIP_ROCWMMA_FATTN=ON -DAMDGPU_TARGETS=gfx${GFX_NUM} -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_TESTS=OFF -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined -DCMAKE_HIP_COMPILER=-DCMAKE_HIP_COMPILER=/opt/rocm-7.2.1/bin/hipcc"
+        LLAMACPP_BLD_FLAG="-DGGML_HIP=ON -DGGML_HIP_ROCWMMA_FATTN=ON -DAMDGPU_TARGETS=gfx${GFX_NUM} -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_TESTS=OFF -DCMAKE_HIP_COMPILER=/opt/rocm-7.2.1/lib/llvm/bin/clang"
         REQUIRED_PKGS+=("gpg")
         REQUIRED_PKGS+=("dkms")
+        BUILD_TARGET="rocm"
       else
         echo "❌ ERROR: 'gfx$GFX_NUM' is invalid."
         echo "Valid GFX:"
@@ -68,7 +71,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --nvidia)
       echo "[LLAMA.CPP] Using Cuda..."
-      LLAMACPP_BLD_FLAG="-DGGML_CUDA=ON"
+      # not tested.
+      # DCMAKE_CUDA_ARCHITECTURES is not specified.      
+      LLAMACPP_BLD_FLAG="-DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined "
+      BUILD_TARGET="cuda"
       break
       ;;
     --help)
@@ -105,21 +111,27 @@ fi
 
 build_llamacpp()
 {
-  mkdir -p $WORK_DIR
-  mkdir -p $WORK_DIR/bin
-  cd $WORK_DIR
+  (  
+    REAL_USER=$SUDO_USER
+  sudo -u "$REAL_USER" bash <<EOF
+    mkdir -p $WORK_DIR
+    mkdir -p $WORK_DIR/bin
+    cd $WORK_DIR
 
-  git clone --branch $LLAMACPP_TAG ${LLAMACPP_REPO} 
+    git clone --branch $LLAMACPP_TAG ${LLAMACPP_REPO} 
 
-  cd llama.cpp
-  cmake -B build $LLAMACPP_BLD_FLAG
+    cd llama.cpp
+    echo "cmake -B build $LLAMACPP_BLD_FLAG"
+    cmake -B build $LLAMACPP_BLD_FLAG
+    
 
-  cmake --build build --config Release --parallel $(nproc)
+    cmake --build build --config Release -j16
+EOF
 
-  cp build/bin/llama-server $WORK_DIR/bin
-  cp build/bin/llama-cli $WORK_DIR/bin
+    cp build/bin/llama-server $WORK_DIR/bin
+    cp build/bin/llama-cli $WORK_DIR/bin
 
-  cd $ROOT_DIR
+  )
 }
 
 get_qwen_model()
@@ -174,3 +186,11 @@ get_qwen_model
 
 install_model
 install_service
+
+
+
+# cmake -B build -DGGML_HIP=ON -DGGML_HIP_ROCWMMA_FATTN=ON -DAMDGPU_TARGETS=gfx1151 -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_TESTS=OFF -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined -DCMAKE_HIP_COMPILER=-DCMAKE_HIP_COMPILER=/opt/rocm-7.2.1/bin/hipcc
+
+# cmake -B build -DGGML_HIP=ON -DGGML_HIP_ROCWMMA_FATTN=ON -DAMDGPU_TARGETS=gfx1151 -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DCMAKE_BUILD_TYPE=Release -DLLAMA_BUILD_TESTS=OFF -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined -DCMAKE_HIP_COMPILER=/opt/rocm-7.2.1/bin/hipcc
+
+# cmake -S . -B build 
