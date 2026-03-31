@@ -20,12 +20,13 @@ build_llamacpp()
     git clone --branch $LLAMACPP_TAG ${LLAMACPP_REPO} 
 
     cd llama.cpp
-    echo "cmake -B build $EXTRA_FLAG"
-    cmake -B build $LLAMACPP_BLD_FLAG
     
+    echo "cmake -S . -B build $EXTRA_FLAG"
+    cmake -S . -B build $EXTRA_FLAG
 
     # cmake --build build --config Release -j($nproc)
-    cmake --build build --config Release -j16
+    cmake --build build --config Release --target llama-cli -j16
+    cmake --build build --config Release --target llama-server -j16
 
     sleep 1
     rm $WORK_PATH/bin/*
