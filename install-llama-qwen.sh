@@ -1,18 +1,15 @@
 #!/bin/bash
 
-LLAMACPP_TAG="b8580"
-LLAMACPP_REPO="https://github.com/ggml-org/llama.cpp.git"
-
-QWEN2.5_CHAT_URL="https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf"
-QWEN2.5_AUTOCMPLT_URL="https://huggingface.co/unsloth/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf"
-
 
 REQUIRED_PKGS=("cmake" "make" "gcc" "g++" "git" "wget" "curl")
 
-TARGET_GPU=gfx1151 # 
+TARGET_GPU=gfx1151 # 디폴트
 
 ROOT_DIR=$(pwd)
 WORK_DIR=$ROOT_DIR/tmp
+
+source $ROOT_DIR/script_part/build_llama_cpp
+source $ROOT_DIR/script_part/install_func
 
 LLAMACPP_BLD_FLAG=""
     
@@ -126,52 +123,16 @@ build_llamacpp()
     
 
     cmake --build build --config Release -j16
-EOF
 
     cp build/bin/llama-server $WORK_DIR/bin
     cp build/bin/llama-cli $WORK_DIR/bin
 
+EOF
+
+
   )
 }
 
-get_qwen_model()
-{
-  mkdir -p $WORK_DIR
-  mkdir -p $WORK_DIR/models
-  cd $WORK_DIR/models
-
-  wget $QWEN2.5_CHAT_URL
-  wget $QWEN2.5_AUTOCMPLT_URL  
-
-  cd $ROOT_DIR
-}
-
-install_model()
-{
-  mkdir -p /opt/llama-qwen.service.d
-  mkdir -p /opt/llama-qwen.service.d/models
-
-  cp $WORK_DIR/models/* /opt/llama-qwen.service.d/models
-  cp $WORK_DIR/bin/* /opt/llama-qwen.service.d
-
-  
-}
-
-install_service()
-{
-  systemctl stop llama-qwen
-  systemctl disable llama-qwen
-
-  cp ./service_ref/llama-qwen.service /etc/systemd/system/llama-qwen.service
-  chmod 644 /etc/systemd/system/llama-qwen.service
-  
-  cp ./service_ref/llama-server-run.sh /opt/llama-qwen.service.d
-  chmod +x /opt/llama-qwen.service.d/llama-server-run.sh
-
-  systemctl start llama-qwen
-  systemctl enable llama-qwen
-
-}
 
 if [[ $EUID -ne 0 ]]; then
    echo "❌ need root permission."
@@ -180,11 +141,10 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-build_llamacpp
+build_llamacpp $SUDO_USER $WORK_DIR $LLAMACPP_BLD_FLAG
 
-get_qwen_model
-
-install_model
+# get_qwen_model $WORK_DIR
+install_model $WORK_DIR
 install_service
 
 

@@ -1,0 +1,39 @@
+
+
+LLAMACPP_TAG="b8580"
+LLAMACPP_REPO="https://github.com/ggml-org/llama.cpp.git"
+
+build_llamacpp()
+{
+    local REAL_USER=$1
+    local WORK_PATH=$2
+    local EXTRA_FLAG=$3
+    
+  (  
+    # 사용자 권한으로 빌드.
+    REAL_USER=$SUDO_USER
+  sudo -u "$REAL_USER" bash <<EOF
+    mkdir -p $WORK_PATH
+    mkdir -p $WORK_PATH/bin
+    cd $WORK_PATH
+
+    git clone --branch $LLAMACPP_TAG ${LLAMACPP_REPO} 
+
+    cd llama.cpp
+    echo "cmake -B build $EXTRA_FLAG"
+    cmake -B build $LLAMACPP_BLD_FLAG
+    
+
+    # cmake --build build --config Release -j($nproc)
+    cmake --build build --config Release -j16
+
+    sleep 1
+    rm $WORK_PATH/bin/*
+    
+    cp build/bin/llama-server $WORK_PATH/bin
+    cp build/bin/llama-cli $WORK_PATH/bin
+EOF
+
+
+  )
+}
