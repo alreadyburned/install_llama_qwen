@@ -106,34 +106,6 @@ if [ ${#MISSING_PKGS[@]} -ne 0 ]; then
   exit 1
 fi
 
-build_llamacpp()
-{
-  (  
-    REAL_USER=$SUDO_USER
-  sudo -u "$REAL_USER" bash <<EOF
-    mkdir -p $WORK_DIR
-    mkdir -p $WORK_DIR/bin
-    cd $WORK_DIR
-
-    git clone --branch $LLAMACPP_TAG ${LLAMACPP_REPO} 
-
-    cd llama.cpp
-    echo "cmake -B build $LLAMACPP_BLD_FLAG"
-    cmake -B build $LLAMACPP_BLD_FLAG
-    
-
-    cmake --build build --config Release -j16
-
-    cp build/bin/llama-server $WORK_DIR/bin
-    cp build/bin/llama-cli $WORK_DIR/bin
-
-EOF
-
-
-  )
-}
-
-
 if [[ $EUID -ne 0 ]]; then
    echo "❌ need root permission."
    
