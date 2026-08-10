@@ -98,8 +98,8 @@ build_llamacpp()
     sleep 1
     rm $WORK_PATH/bin/*
     
-    cp build/bin/llama-server $WORK_PATH/bin
-    cp build/bin/llama-cli $WORK_PATH/bin
+    cp build/bin/* $WORK_PATH/bin
+    # cp build/bin/llama-cli $WORK_PATH/bin
 EOF
 
 
