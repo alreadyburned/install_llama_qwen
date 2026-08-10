@@ -108,4 +108,17 @@ EOF
 ROOT_DIR=$(pwd)
 WORK_DIR=$ROOT_DIR/tmp
 
+install_llama_bins(){
+    local REAL_USER=$1
+    local WORK_PATH=$2
+    local INSTALL_DIR="/opt/llama_bin"
+  sudo -u "$REAL_USER" bash <<EOF
+    mkdir -p $INSTALL_DIR
+    chown -R $REAL_USER:$REAL_USER $INSTALL_DIR
+    cp $WORK_PATH/bin/* $INSTALL_DIR
+EOF
+}
+
 build_llamacpp $SUDO_USER $WORK_DIR $LLAMACPP_BLD_FLAG
+
+install_llama_bins $SUDO_USER $WORK_DIR
